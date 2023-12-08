@@ -1,21 +1,137 @@
 class TimeQuote {
   constructor() {
-    this.date = new Date()
+    this.blockItem = document.querySelector('.quote-block--item')
+    this.blockAuthor = document.querySelector('.quote-block--author')
+    this.blockSource = document.querySelector('.quote-block--source')
   }
 
   getQuote() {
-    fetch(`/api?time=${String(this.date.getHours()) + '00'}`)
+    let date = new Date()
+    const dayTime = ['ночи', 'утра', 'дня', 'вечера']
+    const hour = ['час', 'часа', 'часов']
+    const minutes = ['минута', 'минуты', 'минут']
+    const decadeMinutes = ['двадцать', 'тридцать', 'сорок', 'пятьдесят']
+    const unitDigits = [
+      'одна',
+      'две',
+      'три',
+      'четыре',
+      'пять',
+      'шесть',
+      'семь',
+      'восемь',
+      'девять',
+      'десять',
+      'одиннадцать',
+      'двенадцать',
+      'тринадцать',
+      'четырнадцать',
+      'пятнадцать',
+      'шестнадцать',
+      'семнадцать',
+      'восемнадцать',
+      'девятнадцать'
+    ]
+
+    function setWordTime() {
+      let timeHour =
+        date.getHours() > 12 ? date.getHours() - 12 : date.getHours()
+      let timeMinutes = date.getMinutes()
+
+      switch (timeHour) {
+        case 1:
+          timeHour = hour[0].replace(hour[0][0], hour[0][0].toUpperCase())
+          break
+        case 2:
+          timeHour = 'Два'
+          break
+        default:
+          timeHour = unitDigits[timeHour - 1].replace(
+            unitDigits[timeHour - 1][0],
+            unitDigits[timeHour - 1][0].toUpperCase()
+          )
+      }
+
+      let minute = timeMinutes
+
+      if (minute < 20) {
+        timeMinutes = ` и ${unitDigits[timeMinutes - 1]}`
+
+        // Добавление склонения слова "минута"
+        if (minute == 1) {
+          timeMinutes += ` ${minutes[0]}`
+        } else if (minute > 1 && minute < 5) {
+          timeMinutes += ` ${minutes[1]}`
+        } else {
+          timeMinutes += ` ${minutes[2]}`
+        }
+        // Замена минут на слова
+      } else if (timeMinutes > 19 && timeMinutes % 10 === 0) {
+        timeMinutes = timeMinutes / 10
+        timeMinutes = ` и ${decadeMinutes[timeMinutes - 2]} ${minutes[2]}`
+      } else {
+        timeMinutes = String(timeMinutes).split('')
+        if (timeMinutes[1] == 1) {
+          minute = minutes[0]
+        } else if (timeMinutes[1] > 1 && timeMinutes[1] < 5) {
+          minute = minutes[1]
+        } else {
+          minute = minutes[2]
+        }
+        timeMinutes = `и ${decadeMinutes[timeMinutes[0] - 2]} ${
+          unitDigits[timeMinutes[1] - 1]
+        } ${minute}`
+      }
+
+      // склонение слова "Час" и определение времени суток
+      let fullHour = date.getHours()
+      if (fullHour < 6) {
+        if (fullHour > 1 && fullHour < 5) {
+          timeHour += ` ${hour[1]}`
+        }
+        if (fullHour > 5) {
+          timeHour += ` ${hour[2]}`
+        }
+        timeHour += ` ${dayTime[0]}`
+      } else if (fullHour > 6 && fullHour < 12) {
+        timeHour += ` ${hour[2]} ${dayTime[1]}`
+      } else if (fullHour > 11 && fullHour < 18) {
+        timeHour += ` ${hour[2]} ${dayTime[2]}`
+      } else if (fullHour > 18) {
+        timeHour += ` ${hour[2]} ${dayTime[3]}`
+      }
+
+      return `${timeHour} ${timeMinutes}`
+    }
+
+    fetch(
+      `/api?time=${
+        String(date.getHours()) +
+        String(
+          date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()
+        )
+      }`
+    )
       .then((response) => response.json())
       .then((data) => {
-        document.querySelector('.quote-block--item').innerHTML =
-          data.data.quote
-        document.querySelector('.quote-block--author').innerHTML =
-          data.data.author
-        document.querySelector('.quote-block--source').innerHTML =
-          data.data.source
+        this.blockItem.innerHTML = data.data.quote
+        this.blockAuthor.innerHTML = data.data.author
+        this.blockSource.innerHTML = data.data.source
       })
+      .catch(() => {
+        this.blockItem.innerHTML = setWordTime()
+        this.blockAuthor.innerHTML = ''
+        this.blockSource.innerHTML = ''
+      })
+  }
+
+  getTimer() {
+    this.getQuote()
+    setInterval(() => {
+      setTimeout(this.getQuote())
+    }, 10000)
   }
 }
 
 let time = new TimeQuote()
-time.getQuote()
+time.getTimer()
